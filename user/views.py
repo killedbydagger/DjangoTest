@@ -59,5 +59,5 @@ def createNewUser(request):
     return Response(jsonResponse)
 
 def randomString(stringLength):
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(stringLength))
+    return ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(stringLength))
 
