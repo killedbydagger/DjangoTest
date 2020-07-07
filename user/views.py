@@ -50,3 +50,21 @@ def createNewUser(request):
 def randomString(stringLength):
     return ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(stringLength))
 
+@api_view(['GET'])
+def registerValidation(request):
+    try:
+        user = models.User.objects.get(user_email=request.GET.get('email', ''), user_token=request.GET.get('token', ''))
+        user.user_activeyn = 'Y'
+        user.user_token = randomString(15)
+        user.save()
+        jsonResponse = {
+            "data": [],
+            "status": "Success"
+        }
+        return Response(jsonResponse)
+    except models.User.DoesNotExist:
+        jsonResponse = {
+            "data": [],
+            "status": "Token and Email not match"
+        }
+        return Response(jsonResponse)
