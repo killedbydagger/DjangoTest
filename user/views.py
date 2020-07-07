@@ -13,50 +13,39 @@ def getUserLogIn(request):
     body = json.loads(request.body.decode('utf-8'))
     user = models.User.objects.raw('SELECT * FROM user WHERE user_email = %s AND BINARY user_password = %s', [body.get("email"), body.get("password")])
     serializer = serializers.UserSerializer(user, many=True)
+    jsonResponse = {
+        "data": serializer.data
+    }
     if len(serializer.data) == 0:
-        jsonResponse = {
-            "data": serializer.data,
-            "status": "Invalid"
-        }
+        jsonResponse.update({"status": "Invalid"})
     else:
-        jsonResponse = {
-            "data": serializer.data,
-            "status": "Success"
-        }
+        jsonResponse.update({"status": "Success"})
     return Response(jsonResponse)
 
 @api_view(['POST'])
 def createNewUser(request):
     body = json.loads(request.body.decode('utf-8'))
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(user_id) FROM `user` WHERE user_email = %s", [body.get("email")])
-        result = cursor.fetchone()
-    if result[0] == 0:
+    try:
+        models.User.objects.get(user_email=body.get("email"))
+        jsonResponse = {
+            "data": [],
+            "status": "Email already exist"
+        }
+        return Response(jsonResponse)
+    except models.User.DoesNotExist:
         now = datetime.now()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
-        with connection.cursor() as cursor:
-            cursor.execute('''INSERT INTO `user`
-                                (user_email, user_password, user_first_name,
-                                user_last_name, user_phone, user_gender,
-                                user_dateOfBirth, user_status, user_activeYN, user_token, created_at, updated_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                               [body.get("email"), body.get("password"), body.get("first_name"),
-                                body.get("last_name"), body.get("phone"), body.get("gender"),
-                                body.get("dateOfBirth"), 'Normal', 'N',
-                                randomString(15), formatted_date, formatted_date])
-        user = models.User.objects.raw('SELECT * FROM user WHERE user_email = %s', [body.get("email")])
+        models.User.objects.create(user_email=body.get("email"), user_password=body.get("password"), user_first_name=body.get("first_name"),
+                           user_last_name=body.get("last_name"), user_phone=body.get("phone"), user_gender=body.get("gender"),
+                           user_dateofbirth=body.get("dateOfBirth"), user_status='Normal', user_activeyn='N',
+                           user_token=randomString(15), created_at=formatted_date, updated_at=formatted_date)
+        user = models.User.objects.filter(user_email=body.get("email"))
         serializer = serializers.UserSerializer(user, many=True)
         jsonResponse = {
             "data": serializer.data,
             "status": "Success"
         }
         return Response(jsonResponse)
-    else:
-        jsonResponse = {
-            "data": [],
-            "status": "Email already exist"
-        }
-    return Response(jsonResponse)
 
 def randomString(stringLength):
     return ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(stringLength))
