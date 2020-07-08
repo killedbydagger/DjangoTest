@@ -5,7 +5,6 @@ import json
 import random
 import string
 from datetime import datetime
-from django.db import connection
 
 # Create your views here.
 @api_view(['POST'])
