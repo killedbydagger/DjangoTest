@@ -121,3 +121,20 @@ def changePassword(request):
     except user.DoesNotExist:
         jsonResponse.update({"status": "Not Exist"})
         return Response(jsonResponse)
+
+@api_view(['POST'])
+def getUserProfile(request):
+    body = json.loads(request.body.decode('utf-8'))
+    jsonResponse = {
+        "data": []
+    }
+    try:
+        user = models.User.objects.get(user_email=body.get("email"))
+        serializer = serializers.UserSerializer(user, many=False)
+        jsonResponse.update({
+            "data": serializer.data,
+            "status": "Success"
+        })
+    except user.DoesNotExist:
+        jsonResponse.update({"status": "Not Found"})
+        return Response(jsonResponse)
