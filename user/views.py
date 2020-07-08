@@ -25,12 +25,12 @@ def getUserLogIn(request):
 @api_view(['POST'])
 def createNewUser(request):
     body = json.loads(request.body.decode('utf-8'))
+    jsonResponse = {
+        "data": []
+    }
     try:
         models.User.objects.get(user_email=body.get("email"))
-        jsonResponse = {
-            "data": [],
-            "status": "Email already exist"
-        }
+        jsonResponse.update({"status": "Email already exist"})
         return Response(jsonResponse)
     except models.User.DoesNotExist:
         now = datetime.now()
@@ -41,10 +41,10 @@ def createNewUser(request):
                            user_token=randomString(15), created_at=formatted_date, updated_at=formatted_date)
         user = models.User.objects.filter(user_email=body.get("email"))
         serializer = serializers.UserSerializer(user, many=True)
-        jsonResponse = {
+        jsonResponse.update({
             "data": serializer.data,
             "status": "Success"
-        }
+        })
         return Response(jsonResponse)
 
 def randomString(stringLength):
@@ -52,19 +52,73 @@ def randomString(stringLength):
 
 @api_view(['GET'])
 def registerValidation(request):
+    jsonResponse = {
+        "data": []
+    }
     try:
         user = models.User.objects.get(user_email=request.GET.get('email', ''), user_token=request.GET.get('token', ''))
         user.user_activeyn = 'Y'
         user.user_token = randomString(15)
         user.save()
-        jsonResponse = {
-            "data": [],
-            "status": "Success"
-        }
+        jsonResponse.update({"status": "Success"})
         return Response(jsonResponse)
     except models.User.DoesNotExist:
-        jsonResponse = {
-            "data": [],
-            "status": "Token and Email not match"
-        }
+        jsonResponse.update({"status": "Token and Email not match"})
+        return Response(jsonResponse)
+
+@api_view(['POST'])
+def checkEmailRegister(request):
+    body = json.loads(request.body.decode('utf-8'))
+    jsonResponse = {
+        "data": []
+    }
+    try:
+        models.User.objects.get(user_email=body.get("email"))
+        jsonResponse.update({"status": "Exist"})
+        return Response(jsonResponse)
+    except models.User.DoesNotExist:
+        jsonResponse.update({"status": "Not Exist"})
+        return Response(jsonResponse)
+
+@api_view(['POST'])
+def forgetPassword(request):
+    body = json.loads(request.body.decode('utf-8'))
+    jsonResponse = {
+        "data": []
+    }
+    try:
+        now = datetime.now()
+        formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+        user = models.User.objects.get(user_email=body.get("email"))
+        user.user_password = randomString(10)
+        user.user_token = randomString(15)
+        user.updated_at = formatted_date
+        user.save()
+        jsonResponse.update({"status": "Success"})
+        return Response(jsonResponse)
+    except user.DoesNotExist:
+        jsonResponse.update({"status": "Not Exist"})
+        return Response(jsonResponse)
+
+@api_view(['POST'])
+def changePassword(request):
+    body = json.loads(request.body.decode('utf-8'))
+    jsonResponse = {
+        "data": []
+    }
+    try:
+        user = models.User.objects.get(user_email=body.get("email"))
+        if user.user_password == body.get("old_password"):
+            now = datetime.now()
+            formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
+            user.user_password = body.get("new_password")
+            user.updated_at = formatted_date
+            user.save()
+            jsonResponse.update({"status": "Success"})
+            return Response(jsonResponse)
+        else:
+            jsonResponse.update({"status": "Invalid"})
+            return Response(jsonResponse)
+    except user.DoesNotExist:
+        jsonResponse.update({"status": "Not Exist"})
         return Response(jsonResponse)
